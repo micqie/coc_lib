@@ -64,7 +64,10 @@
                             logs.forEach(log => {
                                 const row = document.createElement('tr');
                                 const date = new Date(log.time_in).toLocaleDateString();
-                                row.innerHTML = `<td>${log.user_schoolId}</td><td>${log.time_in}</td><td>${log.time_out || 'N/A'}</td><td>${date}</td>`;
+                                row.innerHTML = `<td>${log.user_schoolId}</td>
+                                <td>${log.time_in}</td>
+                                <td>${log.time_out || ''}</td>
+                                <td>${date || ''}</td>`;
                                 logsTable.appendChild(row);
                             });
                         }

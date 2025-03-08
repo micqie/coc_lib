@@ -4,24 +4,37 @@ document.addEventListener("DOMContentLoaded", function () {
     scanner.addListener("scan", function (content) {
         document.getElementById("text").value = content; // Display scanned QR code
 
-        // Send data using Axios
-        axios.post("http://localhost/api/insert.php", { text: content })
+        processScan(content); // Call function to handle time-in/time-out logic
+    });
+
+    Instascan.Camera.getCameras().then(function (cameras) {
+        if (cameras.length > 0) {
+            scanner.start(cameras[0]);
+        } else {
+            console.error("No cameras found.");
+        }
+    }).catch(function (e) {
+        console.error(e);
+    });
+});
+
+// Function to process the scanned QR code
+function processScan(userId) {
+    axios.post("http://localhost/coc_lib/api/insert.php", { text: userId })
         .then(response => {
             let messageDiv = document.getElementById("message");
+            messageDiv.textContent = response.data.message;
 
             if (response.data.status === "success") {
-                messageDiv.textContent = response.data.message; // Show success message
-                messageDiv.className = "alert alert-success"; 
-                messageDiv.classList.remove("d-none"); 
-
-                loadLogs(); 
+                messageDiv.className = "alert alert-success";
+                loadLogs(); // Refresh logs after successful scan
             } else {
-                messageDiv.textContent = response.data.message; // Show error message
-                messageDiv.className = "alert alert-danger"; // Bootstrap error styling
-                messageDiv.classList.remove("d-none"); // Show message
+                messageDiv.className = "alert alert-danger";
             }
 
-            // Hide the message after 3 seconds
+            messageDiv.classList.remove("d-none");
+
+            // Hide message after 3 seconds
             setTimeout(() => {
                 messageDiv.classList.add("d-none");
             }, 3000);
@@ -37,15 +50,5 @@ document.addEventListener("DOMContentLoaded", function () {
                 messageDiv.classList.add("d-none");
             }, 3000);
         });
-    });
+}
 
-    Instascan.Camera.getCameras().then(function (cameras) {
-        if (cameras.length > 0) {
-            scanner.start(cameras[0]);
-        } else {
-            console.error("No cameras found.");
-        }
-    }).catch(function (e) {
-        console.error(e);
-    });
-});

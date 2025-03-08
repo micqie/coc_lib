@@ -5,57 +5,60 @@ header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 header("Content-Type: application/json");
 
-$server = "localhost";
-$username = "root";
-$password = "";
-$dbname = "libdb";
+include 'connect_pdo.php';
 
-$conn = new mysqli($server, $username, $password, $dbname);
-if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Connection failed: " . $conn->connect_error]));
-}
-
-// Read and decode JSON input
+// Read JSON input
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (isset($data['text'])) {
-    $text = $conn->real_escape_string($data['text']);
+    $text = $data['text'];
     $date = date("Y-m-d");
     $time = date("H:i:s");
 
-    // Check if user has already timed in but not yet timed out
-    $sql = "SELECT time_in FROM lib_logs WHERE user_schoolId = '$text' AND log_date = '$date' AND STATUS = '0' ORDER BY time_in DESC LIMIT 1";
-    $query = $conn->query($sql);
+    try {
+        // Check if user already has time-in today and not timed out
+        $sql = "SELECT * FROM lib_logs WHERE user_schoolId = :user_schoolId AND log_date = :log_date AND time_out IS NULL";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['user_schoolId' => $text, 'log_date' => $date]);
 
-    if ($query->num_rows > 0) {
-        $row = $query->fetch_assoc();
-        $lastTimeIn = strtotime($row['time_in']);
-        $currentTime = time();
-        $timeDifference = $currentTime - $lastTimeIn;
-
-        if ($timeDifference < 60) { // Less than 1 minute
-            echo json_encode(["status" => "error", "message" => "Time Out Invalid! Please wait " . (60 - $timeDifference) . " seconds"]);
-        } else {
-            // Update time-out
-            $updateSql = "UPDATE lib_logs SET time_out = NOW(), STATUS = '1' WHERE user_schoolId = '$text' AND log_date = '$date' AND STATUS = '0'";
-            if ($conn->query($updateSql) === TRUE) {
-                echo json_encode(["status" => "success", "message" => "Time Out Success"]);
+        if ($stmt->rowCount() > 0) {
+            // Time-out logic
+            $updateSql = "UPDATE lib_logs SET time_out = :time_out, STATUS = '1' 
+                          WHERE user_schoolId = :user_schoolId AND log_date = :log_date AND time_out IS NULL";
+            $updateStmt = $conn->prepare($updateSql);
+            if ($updateStmt->execute(['time_out' => $time, 'user_schoolId' => $text, 'log_date' => $date])) {
+                echo json_encode([
+                    "status" => "success",
+                    "message" => "Time-out recorded successfully!",
+                    "log_date" => $date,
+                    "time_out" => $time
+                ]);
             } else {
-                echo json_encode(["status" => "error", "message" => "Error updating time out: " . $conn->error]);
+                echo json_encode(["status" => "error", "message" => "Error updating time-out"]);
+            }
+        } else {
+            // Time-in logic
+            $insertSql = "INSERT INTO lib_logs (user_schoolId, time_in, log_date, STATUS) 
+                          VALUES (:user_schoolId, :time_in, :log_date, '0')";
+            $insertStmt = $conn->prepare($insertSql);
+            if ($insertStmt->execute(['user_schoolId' => $text, 'time_in' => $time, 'log_date' => $date])) {
+                echo json_encode([
+                    "status" => "success",
+                    "message" => "Time-in recorded successfully!",
+                    "log_date" => $date,
+                    "time_in" => $time
+                ]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "Error inserting time-in"]);
             }
         }
-    } else {
-        // Insert new time-in
-        $insertSql = "INSERT INTO lib_logs (user_schoolId, log_date, time_in, STATUS) VALUES ('$text', '$date', '$time', '0')";
-        if ($conn->query($insertSql) === TRUE) {
-            echo json_encode(["status" => "success", "message" => "Time In Success"]);
-        } else {
-            echo json_encode(["status" => "error", "message" => "Error inserting time in: " . $conn->error]);
-        }
+    } catch (PDOException $e) {
+        echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
     }
 } else {
     echo json_encode(["status" => "error", "message" => "Missing student ID"]);
 }
 
-$conn->close();
+// Close the database connection
+$conn = null;
 ?>
