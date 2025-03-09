@@ -11,22 +11,22 @@ include 'connect_pdo.php';
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (isset($data['text'])) {
-    $text = $data['text'];
+    $text = $data['text']; // Student ID
     $date = date("Y-m-d");
     $time = date("H:i:s");
 
     try {
-        // Check if user already has time-in today and not timed out
-        $sql = "SELECT * FROM lib_logs WHERE user_schoolId = :user_schoolId AND log_date = :log_date AND time_out IS NULL";
+        // Check if the student has already timed in today but has no time-out yet
+        $sql = "SELECT log_id FROM lib_logs WHERE user_schoolId = :user_schoolId AND log_date = :log_date AND time_out IS NULL ORDER BY time_in DESC LIMIT 1";
         $stmt = $conn->prepare($sql);
         $stmt->execute(['user_schoolId' => $text, 'log_date' => $date]);
 
         if ($stmt->rowCount() > 0) {
-            // Time-out logic
-            $updateSql = "UPDATE lib_logs SET time_out = :time_out, STATUS = '1' 
-                          WHERE user_schoolId = :user_schoolId AND log_date = :log_date AND time_out IS NULL";
+            // If a time-in exists but no time-out, update it with time_out
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $updateSql = "UPDATE lib_logs SET time_out = :time_out, STATUS = '1' WHERE id = :id";
             $updateStmt = $conn->prepare($updateSql);
-            if ($updateStmt->execute(['time_out' => $time, 'user_schoolId' => $text, 'log_date' => $date])) {
+            if ($updateStmt->execute(['time_out' => $time, 'id' => $row['id']])) {
                 echo json_encode([
                     "status" => "success",
                     "message" => "Time-out recorded successfully!",
@@ -37,7 +37,7 @@ if (isset($data['text'])) {
                 echo json_encode(["status" => "error", "message" => "Error updating time-out"]);
             }
         } else {
-            // Time-in logic
+            // If no active time-in found, insert a new time-in
             $insertSql = "INSERT INTO lib_logs (user_schoolId, time_in, log_date, STATUS) 
                           VALUES (:user_schoolId, :time_in, :log_date, '0')";
             $insertStmt = $conn->prepare($insertSql);
@@ -61,4 +61,5 @@ if (isset($data['text'])) {
 
 // Close the database connection
 $conn = null;
+
 ?>

@@ -51,4 +51,3 @@ function processScan(userId) {
             }, 3000);
         });
 }
-

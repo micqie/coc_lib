@@ -26,7 +26,7 @@
                 <label>Scan QR Code</label>
                 <input type="text" name="text" id="text" readonly class="form-control mb-3">
                 
-                <!-- ✅ Success message container -->
+
                 <div id="message" class="alert d-none"></div>
 
                 <table class="table table-bordered">
@@ -53,21 +53,20 @@
                     console.log('Response received:', response);
                     const logsTable = document.getElementById('logsTable');
                     logsTable.innerHTML = ''; // Clear existing logs
-
+    
                     if (response.data.status === 'success') {
                         const logs = response.data.data;
                         console.log('Logs:', logs);
-
+    
                         if (logs.length === 0) {
-                            logsTable.innerHTML = "<tr><td colspan='4'>No logs found</td></tr>";
+                            logsTable.innerHTML = "<tr><td colspan='5'>No logs found</td></tr>";
                         } else {
                             logs.forEach(log => {
                                 const row = document.createElement('tr');
-                                const date = new Date(log.time_in).toLocaleDateString();
                                 row.innerHTML = `<td>${log.user_schoolId}</td>
-                                <td>${log.time_in}</td>
-                                <td>${log.time_out || ''}</td>
-                                <td>${date || ''}</td>`;
+                                                 <td>${log.time_in}</td>
+                                                 <td>${log.time_out ? log.time_out : ''}</td>
+                                                 <td>${log.date_out ? log.date_out : log.log_date}</td>`; // Show log_date if still inside
                                 logsTable.appendChild(row);
                             });
                         }
@@ -79,14 +78,13 @@
                     console.error('Error fetching logs:', error);
                 });
         }
-
+    
         // Load logs initially
         document.addEventListener('DOMContentLoaded', loadLogs);
-
+    
         // Refresh logs every 5 seconds
         setInterval(loadLogs, 5000);
     </script>
-    
 
     <!-- Link external JavaScript file -->
     <script src="js/scan.js"></script>
