@@ -38,6 +38,7 @@ function processScan(userId) {
             setTimeout(() => {
                 messageDiv.classList.add("d-none");
             }, 3000);
+            
         })
         .catch(error => {
             console.error("Error inserting log:", error);

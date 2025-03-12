@@ -1,95 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Library QR Scanner</title>
 
     <!-- Libraries -->
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/3.3.3/adapter.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.10/vue.min.js"></script>
-    <script type="text/javascript" src="https://cdn.rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/3.3.3/adapter.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.10/vue.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.rawgit.com/schmich/instascan-builds/master/instascan.min.js"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    />
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-</head>
-<body>
-
+  </head>
+  <body>
     <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-6">
-                <video id="preview" width="100%"></video>
-            </div>
-            <div class="col-md-6">
-                
-                <label>Scan QR Code</label>
-                <input type="text" name="text" id="text" readonly class="form-control mb-3">
-                
-                <!-- ✅ Success message container -->
-                <div id="message" class="alert d-none"></div>
-
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Student ID</th>
-                            <th>Time In</th>
-                            <th>Time Out</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTable">
-                        <!-- Scanned logs will be displayed here -->
-                    </tbody>
-                </table>
-            </div>
+      <div class="row">
+        <div class="col-md-6">
+          <video id="preview" width="100%"></video>
         </div>
+        <div class="col-md-6">
+          <label>Scan QR Code</label>
+          <input
+            type="text"
+            name="text"
+            id="text"
+            readonly
+            class="form-control mb-3"
+          />
+
+          <!-- ✅ Success message container -->
+          <div id="message" class="alert d-none"></div>
+
+          <!-- display details -->
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="logsTable">
+              <!-- Scanned logs will be displayed here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
     <script>
-        function loadLogs() {
-            console.log('Fetching logs...');
-            axios.get('http://localhost/coc_lib/api/fetch_logs.php')
-                .then(response => {
-                    console.log('Response received:', response);
-                    const logsTable = document.getElementById('logsTable');
-                    logsTable.innerHTML = ''; // Clear existing logs
+      function loadLogs() {
+        console.log("Fetching logs...");
+        axios
+          .get("http://localhost/coc_lib/api/fetch_logs.php")
+          .then((response) => {
+            console.log("Response received:", response);
+            const logsTable = document.getElementById("logsTable");
+            logsTable.innerHTML = ""; // Clear existing logs
 
-                    if (response.data.status === 'success') {
-                        const logs = response.data.data;
-                        console.log('Logs:', logs);
+            if (response.data.status === "success") {
+              const logs = response.data.data;
+              console.log("Logs:", logs);
 
-                        if (logs.length === 0) {
-                            logsTable.innerHTML = "<tr><td colspan='4'>No logs found</td></tr>";
-                        } else {
-                            logs.forEach(log => {
-                                const row = document.createElement('tr');
-                                const date = new Date(log.time_in).toLocaleDateString();
-                                row.innerHTML = `<td>${log.user_schoolId}</td>
+              if (logs.length === 0) {
+                logsTable.innerHTML =
+                  "<tr><td colspan='4'>No logs found</td></tr>";
+              } else {
+                logs.forEach((log) => {
+                  const row = document.createElement("tr");
+                  row.innerHTML = `<td>${log.user_schoolId}</td>
                                 <td>${log.time_in}</td>
-                                <td>${log.time_out || ''}</td>
-                                <td>${date || ''}</td>`;
-                                logsTable.appendChild(row);
-                            });
-                        }
-                    } else {
-                        console.error('Error:', response.data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching logs:', error);
+                                <td>${log.time_out}</td>
+                                <td>${log.log_date}</td>`;
+                  logsTable.appendChild(row);
                 });
-        }
+              }
+            } else {
+              console.error("Error:", response.data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching logs:", error);
+          });
+      }
 
-        // Load logs initially
-        document.addEventListener('DOMContentLoaded', loadLogs);
+      // Load logs initially
+      document.addEventListener("DOMContentLoaded", loadLogs);
 
-        // Refresh logs every 5 seconds
-        setInterval(loadLogs, 5000);
+      // Refresh logs every 5 seconds
+      setInterval(loadLogs, 5000);
     </script>
-    
 
     <!-- Link external JavaScript file -->
     <script src="js/scan.js"></script>
-   
-</body>
+  </body>
 </html>
