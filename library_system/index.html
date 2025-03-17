@@ -3,93 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library QR Scanner</title>
-
-    <!-- Libraries -->
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/3.3.3/adapter.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.10/vue.min.js"></script>
-    <script type="text/javascript" src="https://cdn.rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-
+    <title>Library Scanner</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #preview {
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        #countdown {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            color: #dc3545;
+        }
+        .hidden {
+            display: none !important;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .user-card {
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        .user-card.timeout {
+            opacity: 0.5;
+        }
+        #cooldownMessage {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-
-    <div class="container mt-4">
+    <div class="container mt-5">
         <div class="row">
-            <div class="col-md-6">
-                <video id="preview" width="100%"></video>
-            </div>
-            <div class="col-md-6">
-                
-                <label>Scan QR Code</label>
-                <input type="text" name="text" id="text" readonly class="form-control mb-3">
-                
-                <!-- ✅ Success message container -->
-                <div id="message" class="alert d-none"></div>
+            <div class="col-md-6 offset-md-3">
+                <!-- Scanner Interface -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="text-center mb-0">Library Time-In System</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <video id="preview"></video>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_schoolId" class="form-label">Manual Entry (if needed)</label>
+                            <input type="text" class="form-control" id="user_schoolId" autofocus>
+                        </div>
+                    </div>
+                </div>
 
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Student ID</th>
-                            <th>Time In</th>
-                            <th>Time Out</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTable">
-                        <!-- Scanned logs will be displayed here -->
-                    </tbody>
-                </table>
+                <!-- Active Users Container -->
+                <div id="activeUsers" class="mt-4">
+                    <!-- User cards will be added here dynamically -->
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Cooldown Message -->
+    <div id="cooldownMessage">
+        <h4>Please wait before scanning again</h4>
+        <div id="cooldownTimer">1:00</div>
+    </div>
+
     <script>
-        function loadLogs() {
-            console.log('Fetching logs...');
-            axios.get('http://localhost/coc_lib/api/fetch_logs.php')
-                .then(response => {
-                    console.log('Response received:', response);
-                    const logsTable = document.getElementById('logsTable');
-                    logsTable.innerHTML = ''; // Clear existing logs
+        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+        const TIMEOUT_DURATION = 60; // 1 minute in seconds
+        const COOLDOWN_DURATION = 60; // 1 minute cooldown
+        let activeUsers = new Map(); // Store active users and their timeouts
+        let cooldownUsers = new Map(); // Store users in cooldown
+        let cooldownIntervals = new Map(); // Store cooldown intervals
 
-                    if (response.data.status === 'success') {
-                        const logs = response.data.data;
-                        console.log('Logs:', logs);
+        function showCooldownMessage(userId) {
+            const message = document.getElementById('cooldownMessage');
+            const timer = document.getElementById('cooldownTimer');
+            message.style.display = 'block';
+            
+            let timeLeft = COOLDOWN_DURATION;
+            const interval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    message.style.display = 'none';
+                    cooldownUsers.delete(userId);
+                    cooldownIntervals.delete(userId);
+                } else {
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+                timeLeft--;
+            }, 1000);
 
-                        if (logs.length === 0) {
-                            logsTable.innerHTML = "<tr><td colspan='4'>No logs found</td></tr>";
-                        } else {
-                            logs.forEach(log => {
-                                const row = document.createElement('tr');
-                                const date = new Date(log.time_in).toLocaleDateString();
-                                row.innerHTML = `<td>${log.user_schoolId}</td>
-                                <td>${log.time_in}</td>
-                                <td>${log.time_out || ''}</td>
-                                <td>${date || ''}</td>`;
-                                logsTable.appendChild(row);
-                            });
-                        }
-                    } else {
-                        console.error('Error:', response.data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching logs:', error);
-                });
+            cooldownIntervals.set(userId, interval);
         }
 
-        // Load logs initially
-        document.addEventListener('DOMContentLoaded', loadLogs);
+        function createUserCard(userData, isTimeout = false) {
+            const cardId = `user-${Date.now()}`;
+            const card = document.createElement('div');
+            card.className = 'card user-card';
+            card.id = cardId;
+            
+            const timeIn = new Date().toLocaleTimeString();
+            const timeoutTime = new Date(Date.now() + TIMEOUT_DURATION * 1000).toLocaleTimeString();
+            
+            card.innerHTML = `
+                <div class="card-header ${isTimeout ? 'bg-danger' : 'bg-success'} text-white">
+                    <h4 class="mb-0">User Details</h4>
+                </div>
+                <div class="card-body">
+                    <div class="user-info">
+                        <p><strong>Name:</strong> ${userData.user_firstname} ${userData.user_middlename || ''} ${userData.user_lastname} ${userData.user_suffix || ''}</p>
+                        <p><strong>Email:</strong> ${userData.user_email}</p>
+                        <p><strong>Contact:</strong> ${userData.user_contact}</p>
+                        <p><strong>Department:</strong> ${userData.department_name || 'N/A'}</p>
+                        <p><strong>Course:</strong> ${userData.course_name || 'N/A'}</p>
+                        <p><strong>Time In:</strong> ${timeIn}</p>
+                        <p><strong>Status:</strong> <span class="countdown">${isTimeout ? 'TIMED OUT' : timeoutTime}</span></p>
+                    </div>
+                </div>
+            `;
 
-        // Refresh logs every 5 seconds
-        setInterval(loadLogs, 5000);
+            document.getElementById('activeUsers').appendChild(card);
+            
+            if (!isTimeout) {
+                // Start countdown for this user
+                const countdownElement = card.querySelector('.countdown');
+                const timeoutId = setTimeout(() => {
+                    card.classList.add('timeout');
+                    countdownElement.textContent = 'TIMED OUT';
+                    cooldownUsers.set(userData.user_schoolId, Date.now());
+                    showCooldownMessage(userData.user_schoolId);
+                }, TIMEOUT_DURATION * 1000);
+
+                // Store the timeout ID
+                activeUsers.set(cardId, timeoutId);
+
+                // Update countdown every second
+                const countdownInterval = setInterval(() => {
+                    const now = new Date();
+                    const timeout = new Date(Date.now() + TIMEOUT_DURATION * 1000);
+                    const timeLeft = Math.max(0, Math.floor((timeout - now) / 1000));
+                    
+                    if (timeLeft === 0) {
+                        clearInterval(countdownInterval);
+                        countdownElement.textContent = 'TIMED OUT';
+                    } else {
+                        const minutes = Math.floor(timeLeft / 60);
+                        const seconds = timeLeft % 60;
+                        countdownElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }, 1000);
+            }
+
+            return cardId;
+        }
+
+        // Start the scanner immediately
+        Instascan.Camera.getCameras().then(function(cameras) {
+            if (cameras.length > 0) {
+                scanner.start(cameras[0]);
+            } else {
+                console.error('No cameras found.');
+                alert('No cameras found.');
+            }
+        }).catch(function(e) {
+            console.error(e);
+            alert('Error accessing camera.');
+        });
+
+        async function handleScan(schoolId) {
+            // Check if user is in cooldown
+            if (cooldownUsers.has(schoolId)) {
+                alert('Please wait before scanning again.');
+                return;
+            }
+
+            try {
+                const response = await axios.post('../api/time_in.php', {
+                    user_schoolId: schoolId
+                });
+
+                if (response.data.user_data) {
+                    createUserCard(response.data.user_data);
+                    alert('Scan successful!');
+                }
+            } catch (error) {
+                alert(error.response?.data?.message || 'An error occurred');
+            }
+        }
+
+        scanner.addListener('scan', function(content) {
+            handleScan(content);
+        });
+
+        // Manual entry fallback
+        const schoolIdInput = document.getElementById('user_schoolId');
+        schoolIdInput.addEventListener('input', function(e) {
+            const schoolId = e.target.value.trim();
+            
+            if (schoolId) {
+                handleScan(schoolId);
+                schoolIdInput.value = '';
+            }
+        });
     </script>
-    
 
-    <!-- Link external JavaScript file -->
-    <script src="js/scan.js"></script>
-   
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html> 
