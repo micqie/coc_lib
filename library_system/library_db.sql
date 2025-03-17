@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 17, 2025 at 02:20 PM
+-- Generation Time: Mar 17, 2025 at 09:37 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `libdb`
+-- Database: `library_db`
 --
 
 -- --------------------------------------------------------
@@ -95,6 +95,19 @@ CREATE TABLE `lib_logs` (
   `log_date` date NOT NULL DEFAULT curdate()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `lib_logs`
+--
+
+INSERT INTO `lib_logs` (`log_id`, `user_schoolId`, `time_in`, `time_out`, `log_date`) VALUES
+(1, '12345', '04:03:45', '04:27:25', '2025-03-18'),
+(2, '12345', '04:04:12', '04:27:25', '2025-03-18'),
+(3, '02-2122-020202', '04:07:38', '04:27:25', '2025-03-18'),
+(4, '02-2122-020202', '04:09:59', '04:27:25', '2025-03-18'),
+(5, '12345', '04:10:21', '04:27:25', '2025-03-18'),
+(6, '12345', '04:12:03', '04:27:25', '2025-03-18'),
+(7, '02-2122-020202', '04:12:21', '04:27:25', '2025-03-18');
+
 -- --------------------------------------------------------
 
 --
@@ -125,7 +138,8 @@ CREATE TABLE `lib_users` (
 --
 
 INSERT INTO `lib_users` (`user_id`, `user_schoolId`, `user_lastname`, `user_firstname`, `user_middlename`, `user_suffix`, `phinmaed_email`, `user_email`, `user_contact`, `user_password`, `user_courseId`, `user_departmentId`, `user_schoolyearId`, `user_typeId`, `user_status`, `user_level`) VALUES
-(0, '02-2122-020202', 'Lago', 'Micah', 'Dusil', 'none', 'micah@phinmaed.com', 'micah@gmail.com', '0909009', 'phinma-coc', 1, 2, 2024, 2, 1, 2);
+(1, '02-2122-020202', 'Lago', 'Micah', 'Dusil', 'none', 'micah@phinmaed.com', 'micah@gmail.com', '0909009', 'phinma-coc', 1, 2, 2024, 2, 1, 2),
+(2, '12345', 'Doe', 'John', 'Michael', NULL, 'johndoe@phinma.edu', 'johndoe@gmail.com', '09123456789', 'password123', 1, 1, 2024, 2, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -170,6 +184,7 @@ ALTER TABLE `lib_departments`
 -- Indexes for table `lib_logs`
 --
 ALTER TABLE `lib_logs`
+  ADD PRIMARY KEY (`log_id`),
   ADD KEY `fk_lib_logs_user` (`user_schoolId`);
 
 --
@@ -188,6 +203,22 @@ ALTER TABLE `lib_users`
 --
 ALTER TABLE `lib_usertype`
   ADD PRIMARY KEY (`user_typeId`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `lib_logs`
+--
+ALTER TABLE `lib_logs`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+--
+-- AUTO_INCREMENT for table `lib_users`
+--
+ALTER TABLE `lib_users`
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
