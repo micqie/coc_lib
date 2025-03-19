@@ -6,7 +6,7 @@ header("Content-Type: application/json");
 $server = "localhost";
 $username = "root";
 $password = "";
-$dbname = "libdb";
+$dbname = "db_library";
 
 $conn = new mysqli($server, $username, $password, $dbname);
 if ($conn->connect_error) {
