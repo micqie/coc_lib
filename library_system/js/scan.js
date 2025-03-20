@@ -9,13 +9,13 @@ function showMessage(message, type = 'info', countdown = null) {
     const messageContainer = document.getElementById('messageContainer');
     const messageElement = document.createElement('div');
     messageElement.className = 'message';
-    
+
     if (countdown) {
         // Create countdown display
         const countdownSpan = document.createElement('span');
         messageElement.textContent = 'Cannot timeout yet. Please wait ';
         messageElement.appendChild(countdownSpan);
-        
+
         // Start countdown
         let timeLeft = countdown;
         const updateCountdown = () => {
@@ -28,12 +28,20 @@ function showMessage(message, type = 'info', countdown = null) {
             }
         };
         updateCountdown();
+
+        // fade out
+        setTimeout(() => {
+            messageElement.classList.add('fade-out');
+            setTimeout(() => {
+                messageElement.remove();
+            }, 500);
+        }, 5000);
     } else {
         messageElement.textContent = message;
     }
-    
+
     messageContainer.appendChild(messageElement);
-    
+
     // Fade out after 5 seconds if not a countdown message
     if (!countdown) {
         setTimeout(() => {
@@ -57,7 +65,7 @@ function showCooldownMessage(userId) {
     const message = document.getElementById('cooldownMessage');
     const timer = document.getElementById('cooldownTimer');
     message.style.display = 'block';
-    
+
     let timeLeft = COOLDOWN_DURATION;
     const interval = setInterval(() => {
         if (timeLeft <= 0) {
@@ -83,10 +91,10 @@ function createUserCard(userData, isTimeout = false) {
     card.className = 'card user-card';
     card.id = cardId;
     card.setAttribute('data-user-id', userData.user_schoolId);
-    
+
     const timeIn = userData.time_in || new Date().toLocaleTimeString();
     const timeOut = userData.time_out || '';
-    
+
     card.innerHTML = `
         <div class="card-header ${isTimeout ? 'bg-danger' : 'bg-success'} text-white">
             <h4 class="mb-0">User Details</h4>
@@ -105,7 +113,7 @@ function createUserCard(userData, isTimeout = false) {
     `;
 
     document.getElementById('activeUsers').appendChild(card);
-    
+
     if (!isTimeout) {
         // Start countdown for this user
         const countdownElement = card.querySelector('.countdown');
@@ -114,7 +122,7 @@ function createUserCard(userData, isTimeout = false) {
             countdownElement.textContent = new Date().toLocaleTimeString();
             cooldownUsers.set(userData.user_schoolId, Date.now());
             showCooldownMessage(userData.user_schoolId);
-            
+
             // Fade out and remove the card after timeout
             setTimeout(() => {
                 card.classList.add('fade-out');
@@ -132,14 +140,14 @@ function createUserCard(userData, isTimeout = false) {
 }
 
 // Start the scanner immediately
-Instascan.Camera.getCameras().then(function(cameras) {
+Instascan.Camera.getCameras().then(function (cameras) {
     if (cameras.length > 0) {
         scanner.start(cameras[0]);
     } else {
         console.error('No cameras found.');
         showMessage('Camera not detected. Please check your device settings.');
     }
-}).catch(function(e) {
+}).catch(function (e) {
     console.error(e);
     showMessage('Unable to access camera. Please check your device permissions.');
 });
@@ -162,7 +170,7 @@ async function handleScan(schoolId) {
                 // Handle timeout
                 const card = createUserCard(response.data.user_data, true);
                 showMessage('Time-out successful!');
-                
+
                 // Fade out the card after timeout
                 setTimeout(() => {
                     const cardElement = document.getElementById(card);
@@ -177,7 +185,7 @@ async function handleScan(schoolId) {
                 // Handle time-in
                 const card = createUserCard(response.data.user_data);
                 showMessage('Time-in successful!');
-                
+
                 // Fade out the card after successful time-in
                 setTimeout(() => {
                     const cardElement = document.getElementById(card);
@@ -201,15 +209,15 @@ async function handleScan(schoolId) {
     }
 }
 
-scanner.addListener('scan', function(content) {
+scanner.addListener('scan', function (content) {
     handleScan(content);
 });
 
 // Manual entry fallback
 const schoolIdInput = document.getElementById('user_schoolId');
-schoolIdInput.addEventListener('input', function(e) {
+schoolIdInput.addEventListener('input', function (e) {
     const schoolId = e.target.value.trim();
-    
+
     if (schoolId) {
         handleScan(schoolId);
         schoolIdInput.value = '';
@@ -219,7 +227,7 @@ schoolIdInput.addEventListener('input', function(e) {
 // Add this at the beginning of your script section
 function updateClock() {
     const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', { 
+    const timeString = now.toLocaleTimeString('en-US', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
@@ -231,7 +239,7 @@ function updateClock() {
         month: 'long',
         day: 'numeric'
     });
-    
+
     document.getElementById('clock').textContent = timeString;
     document.getElementById('date').textContent = dateString;
 }
